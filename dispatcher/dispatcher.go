@@ -90,6 +90,7 @@ func (d *Dispatcher) Register(serviceName string, service interface{}) error {
 
 	// Save the service and its methods in the dispatcher.
 	d.services[serviceName] = sd
+
 	return nil
 }
 
@@ -122,11 +123,13 @@ func (d *Dispatcher) Run(service, method string, args ...interface{}) ([]reflect
 	// Prepare the arguments.
 	inArgs := make([]reflect.Value, len(args)+1)
 	inArgs[0] = d.services[service].service
+
 	for i, arg := range args {
 		inArgs[i+1] = reflect.ValueOf(arg)
 	}
 
 	// Run the method.
 	output := d.services[service].methods[method].function.Call(inArgs)
+
 	return output, nil
 }
