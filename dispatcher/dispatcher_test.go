@@ -9,6 +9,7 @@ import (
 type mockService struct {
 }
 
+//nolint:unused
 func (ms *mockService) unexported() {
 }
 
@@ -35,13 +36,16 @@ type mockServiceVariadic struct {
 func (ms *mockServiceVariadic) MethodWithVariadicArguments(args ...interface{}) {
 }
 
+//nolint:thelper
 // newDevDispatcher creates a dev dispatcher with the mock service registered by default.
 func newDevDispatcher(t *testing.T) *Dispatcher {
 	d := New()
 	err := d.Register("mock", &mockService{})
+
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	return d
 }
 
