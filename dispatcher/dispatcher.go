@@ -11,16 +11,16 @@ var (
 	ErrNonExistentMethod     = fmt.Errorf("method is not registered in the dispatcher")
 	ErrInvalidArgumentsCount = fmt.Errorf("invalid number of arguments provided")
 	ErrInvalidArgumentType   = fmt.Errorf("invalid argument type")
-	ErrMethodWithVariadic    = fmt.Errorf("variadic method are not supported")
 )
 
 // funcMetadata represents one method.
 // It contains metadata about the function : the method itself,
 // its argument's count and types.
 type funcMetadata struct {
-	function  reflect.Value
-	argsCount int
-	argsTypes []reflect.Type
+	function   reflect.Value
+	argsCount  int
+	argsTypes  []reflect.Type
+	isVariadic bool
 }
 
 // serviceData represents a service along with its methods.
@@ -71,9 +71,10 @@ func (d *Dispatcher) Register(serviceName string, service interface{}) error {
 
 		// Save each method and the method's argument count.
 		sd.methods[methodName] = &funcMetadata{
-			function:  st.Method(i).Func,
-			argsCount: st.Method(i).Func.Type().NumIn(),
-			argsTypes: []reflect.Type{},
+			function:   st.Method(i).Func,
+			argsCount:  st.Method(i).Func.Type().NumIn(),
+			argsTypes:  []reflect.Type{},
+			isVariadic: false,
 		}
 
 		// For each method, save its argument's types.
@@ -84,7 +85,7 @@ func (d *Dispatcher) Register(serviceName string, service interface{}) error {
 
 		// If method has variadic arguments, specify it in the metadata.
 		if st.Method(i).Func.Type().IsVariadic() {
-			return ErrMethodWithVariadic
+			sd.methods[methodName].isVariadic = true
 		}
 	}
 
@@ -106,18 +107,12 @@ func (d *Dispatcher) Run(service, method string, args ...interface{}) ([]reflect
 		return nil, ErrNonExistentMethod
 	}
 
-	// Checks for the given argument list length.
-	// A +1 is added to the list length because argsCount counts the service
-	// as the first argument to provide to the called method
-	if len(args)+1 != d.services[service].methods[method].argsCount {
+	if !d.verifyArgumentCount(service, method, args...) {
 		return nil, ErrInvalidArgumentsCount
 	}
 
-	// Checks for the arguments type.
-	for i, arg := range args {
-		if reflect.TypeOf(arg) != d.services[service].methods[method].argsTypes[i+1] {
-			return nil, ErrInvalidArgumentType
-		}
+	if !d.verifyArgumentTypes(service, method, args...) {
+		return nil, ErrInvalidArgumentType
 	}
 
 	// Prepare the arguments.
@@ -132,4 +127,53 @@ func (d *Dispatcher) Run(service, method string, args ...interface{}) ([]reflect
 	output := d.services[service].methods[method].function.Call(inArgs)
 
 	return output, nil
+}
+
+func (d *Dispatcher) verifyArgumentCount(service, method string, args ...interface{}) bool {
+	if d.services[service].methods[method].isVariadic {
+		// If no arguments are passed in the variadic slice, there's nothing to verify
+		if len(args) == 0 {
+			return true
+		}
+
+		if len(args)+1 < d.services[service].methods[method].argsCount {
+			return false
+		}
+	} else {
+		if len(args)+1 != d.services[service].methods[method].argsCount {
+			return false
+		}
+	}
+	return true
+}
+
+func (d *Dispatcher) verifyArgumentTypes(service, method string, args ...interface{}) bool {
+	if d.services[service].methods[method].isVariadic {
+		// We verify the constant arguments.
+		max := d.services[service].methods[method].argsCount - 1
+		for i := 0; i < max-1; i++ {
+			if reflect.TypeOf(args[i]) != d.services[service].methods[method].argsTypes[i+1] {
+				return false
+			}
+		}
+
+		// If the variadic arguments are interfaces, we allow any type.
+		if d.services[service].methods[method].argsTypes[max].Elem().Kind() == reflect.Interface {
+			return true
+		}
+
+		// Otherwise, we must verify that each variadic element has the proper type.
+		for i := max - 1; i < len(args); i++ {
+			if reflect.TypeOf(args[i]) != d.services[service].methods[method].argsTypes[max].Elem() {
+				return false
+			}
+		}
+	} else {
+		for i, arg := range args {
+			if reflect.TypeOf(arg) != d.services[service].methods[method].argsTypes[i+1] {
+				return false
+			}
+		}
+	}
+	return true
 }
