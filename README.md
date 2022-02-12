@@ -20,7 +20,6 @@ go get github.com/PtitLuca/go-dispatcher
 
 <details>
 <summary>A very simple example</summary>
-
 ````go
 package main
 
