@@ -144,6 +144,7 @@ func (d *Dispatcher) verifyArgumentCount(service, method string, args ...interfa
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -175,5 +176,6 @@ func (d *Dispatcher) verifyArgumentTypes(service, method string, args ...interfa
 			}
 		}
 	}
+
 	return true
 }
