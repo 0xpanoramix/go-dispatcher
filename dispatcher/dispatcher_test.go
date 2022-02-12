@@ -36,6 +36,9 @@ type mockServiceVariadic struct {
 func (ms *mockServiceVariadic) MethodWithVariadicArguments(args ...interface{}) {
 }
 
+func (ms *mockServiceVariadic) MethodWithConstantAndVariadicArguments(integer int, args ...string) {
+}
+
 //nolint:thelper
 // newDevDispatcher creates a dev dispatcher with the mock service registered by default.
 func newDevDispatcher(t *testing.T) *Dispatcher {
@@ -90,13 +93,6 @@ func TestDispatcher_Register(t *testing.T) {
 			service:       "",
 			success:       false,
 			expectedError: ErrInvalidServiceType,
-		},
-		{
-			name:          "Unsupported variadic method",
-			serviceName:   "mock",
-			service:       &mockServiceVariadic{},
-			success:       false,
-			expectedError: ErrMethodWithVariadic,
 		},
 	}
 
@@ -221,6 +217,80 @@ func TestDispatcher_Run(t *testing.T) {
 			} else {
 				assert.Equal(t, tt.expectedOutput, output)
 			}
+		})
+	}
+}
+
+func TestDispatcher_RunVariadic(t *testing.T) {
+	testCases := []struct {
+		name           string
+		serviceName    string
+		methodName     string
+		arguments      []interface{}
+		success        bool
+		expectedError  error
+		expectedOutput []reflect.Value
+		expectPtr      bool
+	}{
+		{
+			name:          "Valid method call with variadic arguments only #1",
+			serviceName:   "mock",
+			methodName:    "MethodWithVariadicArguments",
+			arguments:     []interface{}{"Hello", "World", "!"},
+			success:       true,
+			expectedError: nil,
+		},
+		{
+			name:          "Valid method call with variadic arguments only #2",
+			serviceName:   "mock",
+			methodName:    "MethodWithVariadicArguments",
+			arguments:     []interface{}{},
+			success:       true,
+			expectedError: nil,
+		},
+		{
+			name:          "Valid method call with predefined and variadic arguments",
+			serviceName:   "mock",
+			methodName:    "MethodWithConstantAndVariadicArguments",
+			arguments:     []interface{}{42, "Hello", "World", "!"},
+			success:       true,
+			expectedError: nil,
+		},
+		{
+			name:          "Invalid variadic arguments #1",
+			serviceName:   "mock",
+			methodName:    "MethodWithConstantAndVariadicArguments",
+			arguments:     []interface{}{42, 43},
+			success:       false,
+			expectedError: ErrInvalidArgumentType,
+		},
+		{
+			name:          "Invalid variadic arguments #2",
+			serviceName:   "mock",
+			methodName:    "MethodWithConstantAndVariadicArguments",
+			arguments:     []interface{}{42, "Hello", 43},
+			success:       false,
+			expectedError: ErrInvalidArgumentType,
+		},
+		{
+			name:          "Invalid variadic arguments #3",
+			serviceName:   "mock",
+			methodName:    "MethodWithConstantAndVariadicArguments",
+			arguments:     []interface{}{42, "Hello", "World", 43},
+			success:       false,
+			expectedError: ErrInvalidArgumentType,
+		},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			d := New()
+			err := d.Register(tt.serviceName, &mockServiceVariadic{})
+			assert.NoError(t, err)
+
+			_, err = d.Run(tt.serviceName, tt.methodName, tt.arguments...)
+
+			assert.Equal(t, tt.expectedError, err)
 		})
 	}
 }
