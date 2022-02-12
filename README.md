@@ -13,7 +13,7 @@ It can be used to bootstrap a server or create a worker pool in your project !
 
 Run the following command :
 ````shell
-go get github.com/PtitLuca/go-dispatcher
+go get github.com/PtitLuca/go-dispatcher@v1.0.0
 ````
 
 ## Quick Start
