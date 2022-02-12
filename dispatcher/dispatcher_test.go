@@ -39,6 +39,22 @@ func (ms *mockServiceVariadic) MethodWithVariadicArguments(args ...interface{}) 
 func (ms *mockServiceVariadic) MethodWithConstantAndVariadicArguments(integer int, args ...string) {
 }
 
+type mockServiceWithFields struct {
+	name string
+	age  int
+	ptr  *mockService
+}
+
+func (ms *mockServiceWithFields) MethodWhichSetsFields(name string, age int, ptr *mockService) {
+	ms.age = age
+	ms.name = name
+	ms.ptr = ptr
+}
+
+func (ms *mockServiceWithFields) GetFields() (string, int, *mockService) {
+	return ms.name, ms.age, ms.ptr
+}
+
 //nolint:thelper
 // newDevDispatcher creates a dev dispatcher with the mock service registered by default.
 func newDevDispatcher(t *testing.T) *Dispatcher {
@@ -291,6 +307,70 @@ func TestDispatcher_RunVariadic(t *testing.T) {
 			_, err = d.Run(tt.serviceName, tt.methodName, tt.arguments...)
 
 			assert.Equal(t, tt.expectedError, err)
+		})
+	}
+}
+
+func TestDispatcher_RunSetFields(t *testing.T) {
+	testCases := []struct {
+		name           string
+		serviceName    string
+		methodName     string
+		arguments      []interface{}
+		success        bool
+		expectedError  error
+		expectedOutput []reflect.Value
+		expectedPtr    bool
+	}{
+		{
+			name:          "Can set service fields",
+			serviceName:   "mock",
+			methodName:    "MethodWhichSetsFields",
+			arguments:     []interface{}{"Hello", 42, &mockService{}},
+			success:       true,
+			expectedError: nil,
+			expectedOutput: []reflect.Value{
+				reflect.ValueOf("Hello"),
+				reflect.ValueOf(42),
+				reflect.ValueOf(&mockService{}),
+			},
+			expectedPtr: false,
+		},
+		{
+			name:          "Can set service fields and keep pointer",
+			serviceName:   "mock",
+			methodName:    "MethodWhichSetsFields",
+			arguments:     []interface{}{"Hello", 42, &mockService{}},
+			success:       true,
+			expectedError: nil,
+			expectedOutput: []reflect.Value{
+				reflect.ValueOf("Hello"),
+				reflect.ValueOf(42),
+				reflect.ValueOf(&mockService{}),
+			},
+			expectedPtr: true,
+		},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			d := New()
+			err := d.Register(tt.serviceName, &mockServiceWithFields{})
+			assert.NoError(t, err)
+
+			_, err = d.Run(tt.serviceName, tt.methodName, tt.arguments...)
+
+			assert.Equal(t, tt.expectedError, err)
+
+			outputs, err := d.Run(tt.serviceName, "GetFields")
+			assert.NoError(t, err)
+			for i, output := range outputs {
+				assert.Equal(t, tt.expectedOutput[i].Interface(), output.Interface())
+			}
+
+			if tt.expectedPtr {
+				assert.Equal(t, tt.expectedOutput[2].Pointer(), outputs[2].Pointer())
+			}
 		})
 	}
 }
