@@ -4,8 +4,7 @@ A single-file dispatcher written in Golang.
 
 ## Description
 
-Inspired by the JSON-RPC module of [geth](https://github.com/ethereum/go-ethereum), this package provides a way to
-register methods from a struct pointer.
+Inspired by the JSON-RPC module of [polygon-edge](https://github.com/0xPolygon/polygon-edge) and [geth](https://github.com/ethereum/go-ethereum), this package provides a way to register methods from a struct pointer.
 
 It can be used to bootstrap a server or create a worker pool in your project !
 
