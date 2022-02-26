@@ -374,3 +374,15 @@ func TestDispatcher_RunSetFields(t *testing.T) {
 		})
 	}
 }
+
+func TestEmptyNamespace(t *testing.T) {
+	d := New()
+	err := d.Register("", &mockService{})
+	assert.NoError(t, err)
+
+	out, err := d.Run("", "MethodWithReturnValue", "test", 42)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(out))
+	assert.Equal(t, "test", out[0].String())
+	assert.Equal(t, int64(42), out[1].Int())
+}

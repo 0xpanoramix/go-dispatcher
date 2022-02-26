@@ -1,16 +1,16 @@
 package dispatcher
 
 import (
-	"fmt"
+	"errors"
 	"reflect"
 )
 
 var (
-	ErrInvalidServiceType    = fmt.Errorf("service must be a pointer to struct")
-	ErrNonExistentService    = fmt.Errorf("service is not registered in the dispatcher")
-	ErrNonExistentMethod     = fmt.Errorf("method is not registered in the dispatcher")
-	ErrInvalidArgumentsCount = fmt.Errorf("invalid number of arguments provided")
-	ErrInvalidArgumentType   = fmt.Errorf("invalid argument type")
+	ErrInvalidServiceType    = errors.New("service must be a pointer to struct")
+	ErrNonExistentService    = errors.New("service is not registered in the dispatcher")
+	ErrNonExistentMethod     = errors.New("method is not registered in the dispatcher")
+	ErrInvalidArgumentsCount = errors.New("invalid number of arguments provided")
+	ErrInvalidArgumentType   = errors.New("invalid argument type")
 )
 
 // funcMetadata represents one method.
