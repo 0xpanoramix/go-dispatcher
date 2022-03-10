@@ -1,9 +1,10 @@
 package dispatcher
 
 import (
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type mockService struct {
@@ -16,10 +17,13 @@ func (ms *mockService) unexported() {
 func (ms *mockService) Exported() {
 }
 
-func (ms *mockService) MethodWithArguments(str string, integer int) {
+func (ms *mockService) MethodWithArguments(_ string, _ int) {
 }
 
-func (ms *mockService) MethodWithPtrArguments(ptr *mockService) {
+func (ms *mockService) MethodWithPtrArguments(_ *mockService) {
+}
+
+func (ms *mockService) MethodWithArrayArguments(_ []string) {
 }
 
 func (ms *mockService) MethodWithReturnValue(str string, integer int) (string, int) {
@@ -30,13 +34,17 @@ func (ms *mockService) MethodWithPtrArgumentsAndReturnValue(ptr *mockService) *m
 	return ptr
 }
 
+func (ms *mockService) MethodWithArrayArgumentsAndReturnValue(integers []int) []int {
+	return integers
+}
+
 type mockServiceVariadic struct {
 }
 
-func (ms *mockServiceVariadic) MethodWithVariadicArguments(args ...interface{}) {
+func (ms *mockServiceVariadic) MethodWithVariadicArguments(_ ...interface{}) {
 }
 
-func (ms *mockServiceVariadic) MethodWithConstantAndVariadicArguments(integer int, args ...string) {
+func (ms *mockServiceVariadic) MethodWithConstantAndVariadicArguments(_ int, _ ...string) {
 }
 
 type mockServiceWithFields struct {
@@ -99,7 +107,7 @@ func TestDispatcher_Register(t *testing.T) {
 		{
 			name:          "Invalid service type #2",
 			serviceName:   "int",
-			service:       int(0),
+			service:       0,
 			success:       false,
 			expectedError: ErrInvalidServiceType,
 		},
@@ -159,6 +167,14 @@ func TestDispatcher_Run(t *testing.T) {
 			expectedError: nil,
 		},
 		{
+			name:          "Valid method with array arguments",
+			serviceName:   "mock",
+			methodName:    "MethodWithArrayArguments",
+			arguments:     []interface{}{[]string{"foo", "bar", "baz"}},
+			success:       true,
+			expectedError: nil,
+		},
+		{
 			name:          "Valid method with ptr argument and return value",
 			serviceName:   "mock",
 			methodName:    "MethodWithPtrArgumentsAndReturnValue",
@@ -184,6 +200,15 @@ func TestDispatcher_Run(t *testing.T) {
 				reflect.ValueOf("Hello"),
 				reflect.ValueOf(42),
 			},
+		},
+		{
+			name:           "Valid method with array argument and return value",
+			serviceName:    "mock",
+			methodName:     "MethodWithArrayArgumentsAndReturnValue",
+			arguments:      []interface{}{[]int{1, 2, 3}},
+			success:        true,
+			expectedError:  nil,
+			expectedOutput: []reflect.Value{reflect.ValueOf([]int{1, 2, 3})},
 		},
 		{
 			name:          "Non existent service",
