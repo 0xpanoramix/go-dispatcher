@@ -3,6 +3,7 @@ package dispatcher
 import (
 	"errors"
 	"reflect"
+	"sync"
 )
 
 var (
@@ -21,6 +22,7 @@ type FuncMetadata struct {
 	argsCount  int
 	argsTypes  []reflect.Type
 	isVariadic bool
+	mu         sync.Mutex
 }
 
 // ServiceData represents a service along with its methods.
@@ -33,6 +35,7 @@ type ServiceData struct {
 // Each service contains its own methods.
 type Dispatcher struct {
 	services map[string]*ServiceData
+	mu       sync.Mutex
 }
 
 // New creates a new Dispatcher and allocates memory for its service map.
@@ -90,7 +93,9 @@ func (d *Dispatcher) Register(serviceName string, service interface{}) error {
 	}
 
 	// Save the service and its methods in the dispatcher.
+	d.mu.Lock()
 	d.services[serviceName] = sd
+	d.mu.Unlock() // Inline call to Unlock for performance purpose
 
 	return nil
 }
@@ -119,7 +124,9 @@ func (d *Dispatcher) Run(service, method string, args ...interface{}) ([]reflect
 	}
 
 	// Run the method.
+	d.services[service].methods[method].mu.Lock()
 	output := d.services[service].methods[method].function.Call(inArgs)
+	d.services[service].methods[method].mu.Unlock() // Inline call to Unlock for performance purpose
 
 	return output, nil
 }
