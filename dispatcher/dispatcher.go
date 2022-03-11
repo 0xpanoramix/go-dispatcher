@@ -13,31 +13,31 @@ var (
 	ErrInvalidArgumentType   = errors.New("invalid argument type")
 )
 
-// funcMetadata represents one method.
+// FuncMetadata represents one method.
 // It contains metadata about the function : the method itself,
 // its argument's count and types.
-type funcMetadata struct {
+type FuncMetadata struct {
 	function   reflect.Value
 	argsCount  int
 	argsTypes  []reflect.Type
 	isVariadic bool
 }
 
-// serviceData represents a service along with its methods.
-type serviceData struct {
+// ServiceData represents a service along with its methods.
+type ServiceData struct {
 	service reflect.Value
-	methods map[string]*funcMetadata
+	methods map[string]*FuncMetadata
 }
 
 // Dispatcher contains the services mapping.
 // Each service contains its own methods.
 type Dispatcher struct {
-	services map[string]*serviceData
+	services map[string]*ServiceData
 }
 
 // New creates a new Dispatcher and allocates memory for its service map.
 func New() *Dispatcher {
-	return &Dispatcher{services: make(map[string]*serviceData)}
+	return &Dispatcher{services: make(map[string]*ServiceData)}
 }
 
 // Register registers a new service into the dispatcher.
@@ -45,7 +45,7 @@ func New() *Dispatcher {
 // It saves the service's methods in a mapping,
 // along with each method's metadata used when calling one of them.
 //
-// Please refer to funcMetadata for more information
+// Please refer to FuncMetadata for more information
 // about the function metadata content.
 func (d *Dispatcher) Register(serviceName string, service interface{}) error {
 	// The service must be a pointer to struct.
@@ -55,9 +55,9 @@ func (d *Dispatcher) Register(serviceName string, service interface{}) error {
 	}
 
 	// Save the service data locally.
-	sd := &serviceData{
+	sd := &ServiceData{
 		service: reflect.ValueOf(service),
-		methods: make(map[string]*funcMetadata),
+		methods: make(map[string]*FuncMetadata),
 	}
 	// Loop on the service's methods.
 	for i := 0; i < st.NumMethod(); i++ {
@@ -70,7 +70,7 @@ func (d *Dispatcher) Register(serviceName string, service interface{}) error {
 		methodName := st.Method(i).Name
 
 		// Save each method and the method's argument count.
-		sd.methods[methodName] = &funcMetadata{
+		sd.methods[methodName] = &FuncMetadata{
 			function:   st.Method(i).Func,
 			argsCount:  st.Method(i).Func.Type().NumIn(),
 			argsTypes:  []reflect.Type{},
@@ -97,14 +97,9 @@ func (d *Dispatcher) Register(serviceName string, service interface{}) error {
 
 // Run will call the service's method previously registered using the given arguments.
 func (d *Dispatcher) Run(service, method string, args ...interface{}) ([]reflect.Value, error) {
-	// Checks that the service has been registered.
-	if d.services[service] == nil {
-		return nil, ErrNonExistentService
-	}
-
-	// Checks that the method exists.
-	if d.services[service].methods[method] == nil {
-		return nil, ErrNonExistentMethod
+	// Checks that the service has been registered and method exists.
+	if _, err := d.GetMethod(service, method); err != nil {
+		return nil, err
 	}
 
 	if !d.verifyArgumentCount(service, method, args...) {
@@ -127,6 +122,32 @@ func (d *Dispatcher) Run(service, method string, args ...interface{}) ([]reflect
 	output := d.services[service].methods[method].function.Call(inArgs)
 
 	return output, nil
+}
+
+// GetService return a registered service with his methods
+func (d *Dispatcher) GetService(service string) (*ServiceData, error) {
+	s, ok := d.services[service]
+	if !ok {
+		return nil, ErrNonExistentService
+	}
+
+	return s, nil
+}
+
+// GetMethod return a method from a service
+func (d *Dispatcher) GetMethod(service, method string) (*FuncMetadata, error) {
+	s, err := d.GetService(service)
+	if err != nil {
+		return nil, err
+	}
+
+	// Retrieve method.
+	m, ok := s.methods[method]
+	if !ok {
+		return nil, ErrNonExistentMethod
+	}
+
+	return m, nil
 }
 
 func (d *Dispatcher) verifyArgumentCount(service, method string, args ...interface{}) bool {
