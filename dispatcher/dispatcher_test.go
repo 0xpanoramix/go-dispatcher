@@ -2,6 +2,7 @@ package dispatcher
 
 import (
 	"reflect"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -61,6 +62,10 @@ func (ms *mockServiceWithFields) MethodWhichSetsFields(name string, age int, ptr
 
 func (ms *mockServiceWithFields) GetFields() (string, int, *mockService) {
 	return ms.name, ms.age, ms.ptr
+}
+
+func (ms *mockServiceWithFields) IncrementAge() {
+	ms.age += 1
 }
 
 //nolint:thelper
@@ -398,6 +403,35 @@ func TestDispatcher_RunSetFields(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDispatcher_RunConcurrency(t *testing.T) {
+	d := New()
+	err := d.Register("mock", &mockServiceWithFields{})
+	assert.NoError(t, err)
+
+	wg := sync.WaitGroup{}
+
+	callInc := func(n int) {
+		var i int
+		for i = 0; i < n; i++ {
+			_, err := d.Run("mock", "IncrementAge")
+			assert.NoError(t, err)
+		}
+		wg.Done()
+	}
+
+	wg.Add(2)
+
+	go callInc(10000)
+	go callInc(10000)
+
+	wg.Wait()
+
+	out, err := d.Run("mock", "GetFields")
+	assert.NoError(t, err)
+	assert.Equal(t, 3, len(out))
+	assert.Equal(t, int64(20000), out[1].Int())
 }
 
 func TestEmptyNamespace(t *testing.T) {
