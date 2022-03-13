@@ -23,6 +23,22 @@ type FuncMetadata struct {
 	isVariadic bool
 }
 
+func (f *FuncMetadata) GetFunction() reflect.Value {
+	return f.function
+}
+
+func (f *FuncMetadata) GetArgsCount() int {
+	return f.argsCount
+}
+
+func (f *FuncMetadata) GetArgsTypes() []reflect.Type {
+	return f.argsTypes
+}
+
+func (f *FuncMetadata) IsVariadic() bool {
+	return f.isVariadic
+}
+
 // ServiceData represents a service along with its methods.
 type ServiceData struct {
 	service reflect.Value
@@ -124,8 +140,8 @@ func (d *Dispatcher) Run(service, method string, args ...interface{}) ([]reflect
 	return output, nil
 }
 
-// GetService return a registered service with his methods
-func (d *Dispatcher) GetService(service string) (*ServiceData, error) {
+// getService return a registered service with his methods
+func (d *Dispatcher) getService(service string) (*ServiceData, error) {
 	s, ok := d.services[service]
 	if !ok {
 		return nil, ErrNonExistentService
@@ -136,7 +152,7 @@ func (d *Dispatcher) GetService(service string) (*ServiceData, error) {
 
 // GetMethod return a method from a service
 func (d *Dispatcher) GetMethod(service, method string) (*FuncMetadata, error) {
-	s, err := d.GetService(service)
+	s, err := d.getService(service)
 	if err != nil {
 		return nil, err
 	}
