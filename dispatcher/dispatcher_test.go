@@ -10,20 +10,25 @@ type mockService struct {
 }
 
 //nolint:unused
-func (ms *mockService) unexported() {
-}
+func (ms *mockService) unexported() {}
 
-func (ms *mockService) Exported() {
-}
+func (ms *mockService) Exported() {}
 
-func (ms *mockService) MethodWithArguments(_ string, _ int) {
-}
+func (ms *mockService) MethodWithOneArgumentString(_ string) {}
 
-func (ms *mockService) MethodWithPtrArguments(_ *mockService) {
-}
+func (ms *mockService) MethodWithOneArgumentInteger(_ int) {}
 
-func (ms *mockService) MethodWithArrayArguments(_ []string) {
-}
+func (ms *mockService) MethodWithOneArgumentBoolean(_ bool) {}
+
+func (ms *mockService) MethodWithOneArgumentFloat(_ float64) {}
+
+func (ms *mockService) MethodWithOneArgumentObject(_ struct{ Foo string }) {}
+
+func (ms *mockService) MethodWithArguments(_ string, _ int) {}
+
+func (ms *mockService) MethodWithPtrArguments(_ *mockService) {}
+
+func (ms *mockService) MethodWithArrayArguments(_ []string) {}
 
 func (ms *mockService) MethodWithReturnValue(str string, integer int) (string, int) {
 	return str, integer
@@ -37,14 +42,11 @@ func (ms *mockService) MethodWithArrayArgumentsAndReturnValue(integers []int) []
 	return integers
 }
 
-type mockServiceVariadic struct {
-}
+type mockServiceVariadic struct{}
 
-func (ms *mockServiceVariadic) MethodWithVariadicArguments(_ ...interface{}) {
-}
+func (ms *mockServiceVariadic) MethodWithVariadicArguments(_ ...interface{}) {}
 
-func (ms *mockServiceVariadic) MethodWithConstantAndVariadicArguments(_ int, _ ...string) {
-}
+func (ms *mockServiceVariadic) MethodWithConstantAndVariadicArguments(_ int, _ ...string) {}
 
 type mockServiceWithFields struct {
 	name string
